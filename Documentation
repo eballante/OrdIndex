@@ -1,0 +1,14 @@
+Description
+An index to evaluate model performances when the target variable is ordinal. 
+
+Usage
+new.index(pred_prob,y,m)
+
+Arguments
+pred_prob    The matrix of predicted probabilities on the test dataframe
+y            The observed target values coded as numbers in 1:m
+m            Number of ordinal classes
+
+
+Value
+new.index produces a quantitative number, the normalized version of the index and a plot of the actual prediction vs the perfect prediction (i.e. the observed values).
