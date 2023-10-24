@@ -1,0 +1,231 @@
+---
+title: "Toy_example"
+author: "BioData Science Mondino"
+date: "20/8/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,comment=NA,fig.pos = 'h')
+knitr::include_graphics
+```
+
+```{r cars, warning=FALSE, message=FALSE} 
+rm(list=ls())
+# library(MASS)
+# library(rpart)
+# library(rpart.plot)
+# library(e1071)
+#library(caTools)
+library(pROC)
+# library(randomForest)
+# library(xgboost)
+# library(class)
+# library(caret)
+
+# library(FNN)
+#per la function
+library(dplyr)
+library(pracma)
+library(ggplot2)
+library(MLmetrics)
+
+ N<-20
+# p1<-runif(N,0,1)
+# p2<-runif(N,0,1)
+# p3<-1-p1-p2
+# p<-cbind(p1,p2,p3)
+# p<-p[-which(p3<0),]
+# n<-dim(p)[1]
+# while(n<N) {
+#   p1<-runif((N),0,1)
+#   p2<-runif((N),0,1)
+#   p3<-1-p1-p2
+#   p<-rbind(p,cbind(p1,p2,p3))
+#   p<-p[-(n+which(p3<0)),]
+#   n<-dim(p)[1]
+#   print(n)
+# }
+# pred_prob_orig<-data.frame(p[1:N,])
+# write.table(pred_prob_orig,file="./pred_prob15.csv",row.names=FALSE)
+pred_prob_orig<-read.csv("pred_prob20.csv",sep="")
+pred_prob<-pred_prob_orig
+#names(pred_prob)<-c(1,2,3)
+est_class<-apply(pred_prob, 1, which.max)
+l<-min(which(est_class==1))
+```
+
+
+```{r function,echo=FALSE,include=TRUE,fig.align = "center", cache=FALSE, warning=FALSE}
+new.index<-function(pred_prob,test,m) {
+  n<-dim(pred_prob)[1]
+  pred_prob<-unname(pred_prob) 
+  ID<-1:n
+  pred_class <- apply(pred_prob, 1, which.max)
+  pred_class_fac <-as.factor(pred_class)
+ ind<-cbind(1:n,pred_class)
+ prob_estclass<-pred_prob[ind]
+  df<-data.frame(ID,prob_estclass,pred_class_fac,pred_class)
+  ord_obs<- df %>% 
+            arrange(pred_class_fac,desc(prob_estclass)) 
+
+  y_real<-as.numeric(test$y[ord_obs$ID])
+  x_graph<-seq(0,1,length.out=n)
+  fun<-stepfun(x_graph,c(0,y_real))
+  y=fun(x_graph)
+  
+  lenclass_ind<-c(1,1+which(diff(sort(pred_class))!=0))
+  lenclass_ind[m+1]<-n
+  lenclass<-lenclass_ind/n
+  lenclass[1]=0
+  lenclass[m+1]<-1
+  f.goal<-stepfun(x_graph,c(0,sort(as.numeric(test$y)-1)))
+  y.goal=f.goal(x_graph)
+  #plot(x_graph,y.goal)
+  fun_mod<-data.frame(x_graph,y)
+  h<-c(1,1:m)
+  class_point<-data.frame(lenclass,h)
+  graph<-ggplot(fun_mod,aes(x=x_graph,y=y))+ geom_step()+geom_point(class_point,mapping=aes(x=lenclass,y=h))
+  fun_int<-function (x) abs(fun(x)-f.goal(x))
+  int<-rep(NA,m)
+  w<-rep(NA,m)
+  for (i in 1:m) {
+    int[i]<-integral(fun_int,lenclass[i],lenclass[i+1])
+    err<-min(which(y_real[lenclass_ind[i]:(lenclass_ind[i+1]-1)]!=ord_obs$pred_class_fac[lenclass_ind[i]:(lenclass_ind[i+1]-1)]))/n
+    err<-ifelse(is.finite(err),lenclass[i]+err,lenclass[i+1])
+    w[i]<-(lenclass[i+1]-err)/(lenclass[i+1]-lenclass[i])
+  }
+  k<-rep(NA,m)
+  for (i in 1:m){
+    k[i]<-(lenclass[i+1]-lenclass[i])*max(m-i,i-1)
+  }
+index<-sum(int*w)
+K<-sum(k)
+norm_index<-index/K
+obj<-list("index"=index, "norm.index"=norm_index, "graph"=graph)
+return(obj)
+}
+
+
+```
+
+
+```{r prova, fig.align="center", warning=FALSE, cache=FALSE}
+real_class1<-est_class
+
+real_class1[l]<-3
+y<-as.factor(real_class1)
+x<-rep(0,N)
+test1<-data.frame(x,y)
+pred_prob1<-pred_prob
+pred_prob1[l,]<-c(0.75,0.125,0.125)
+est_class1<-apply(pred_prob1, 1, which.max)
+  
+real_class2<-est_class
+real_class2[l]<-3
+pred_prob2<-pred_prob
+pred_prob2[l,]<-c(0.125,0.75,0.125)
+est_class2<-apply(pred_prob2, 1, which.max)
+y<-as.factor(real_class2)
+x<-rep(0,N)
+test2<-data.frame(x,y)
+accuracy<-(N-1)/N
+
+
+# pred_prob1[3,]<-c(pred_prob[3,3],pred_prob[3,2],pred_prob[3,1])
+names(pred_prob)<-c(1,2,3)
+ind1<-newindex(pred_prob1,test1$y,m=3)
+roc_supp<-multiclass.roc(response=test1$y, predictor=pred_prob1)
+auc1<-roc_supp$auc
+mse1<-MSE(as.numeric(est_class1),as.numeric(test1$y))
+ind1_norm<-ind1$norm.index
+# pred_prob2<-pred_prob
+# pred_prob2[3,]<-c(pred_prob[3,3],pred_prob[3,1],pred_prob[3,2])
+ind2<-newindex(pred_prob2,test2,m=3)
+roc_supp<-multiclass.roc(response=test2$y, predictor=pred_prob2)
+auc2<-roc_supp$auc
+mse2<-MSE(as.numeric(est_class2),as.numeric(test2$y))
+ind2_norm<- ind2$norm.index
+tab<-data.frame(cbind(c(ind1$index,ind2$index),c(ind1$norm.index,ind2$norm.index),c(auc1,auc2),c(rep(accuracy,2)),c(mse1,mse2)))
+names(tab)<-c("newind","newind_norm","auc","accuracy","mse")
+print(tab)
+# write.table(tab,"tab_case1.csv")
+# png("graph1_case1.png")
+# ind1$graph
+# dev.off()
+# png("graph2_case1.png")
+# ind2$graph
+# dev.off()
+table(test1$y)
+table(real_class1)
+```
+
+```{r prova2, fig.align="center", warning=FALSE, cache=FALSE}
+
+real_class1<-est_class
+real_class1[l]<-3
+y<-real_class1
+
+x<-rep(0,N)
+test1<-data.frame(x,y)
+#write.table(pred_prob,file="pred_prob.csv")
+pred_prob2<-pred_prob
+pred_prob2[l,]<-c(0.4,0.3,0.3)
+real_class2<- apply(pred_prob2, 1, which.max)
+real_class2[l]<-3
+y<-real_class2
+test2<-data.frame(x,y)
+accuracy<-(N-1)/N
+
+names(pred_prob)<-c(1,2,3)
+ind1<-newindex(pred_prob,test1,m=3)
+roc_supp1<-multiclass.roc(response=test1$y, predictor=pred_prob)
+auc1<-roc_supp1$auc
+mse1<-MSE(as.numeric(est_class),as.numeric(test1$y))
+ind1_norm<-ind1$index/2
+names(pred_prob2)<-c(1,2,3)
+ind2<-newindex(pred_prob2,test2,m=3)
+roc_supp2<-multiclass.roc(response=test2$y, predictor=pred_prob2)
+auc2<-roc_supp2$auc
+mse2<-MSE(as.numeric(est_class),as.numeric(test1$y))
+ind2_norm<-ind2$index/2
+tab<-data.frame(cbind(c(ind1$index,ind2$index),c(ind1$norm.index,ind2$norm.index),c(auc1,auc2),c(rep(accuracy,2)),c(mse1,mse2)))
+names(tab)<-c("newind","ind_norm","auc","accuracy","mse")
+print(tab)
+tab
+```
+
+```{r prova3_controesempio, fig.align="center", warning=FALSE, cache=FALSE}
+
+real_class1<-est_class
+real_class1[l]<-3
+y<-real_class1
+accuracy1<-(N-1)/N
+x<-rep(0,N)
+test1<-data.frame(x,y)
+#write.table(pred_prob,file="pred_prob.csv")
+pred_prob2<-pred_prob
+pred_prob2[l,]<-c(0.9,0.05,0.05)
+real_class2<- apply(pred_prob2, 1, which.max)
+real_class2[c(l,4)]<-c(3,3)
+y<-real_class2
+test2<-data.frame(x,y)
+accuracy2<-(N-2)/N
+
+names(pred_prob)<-c(1,2,3)
+ind1<-new.index(pred_prob,test1,m=3)
+roc_supp1<-multiclass.roc(response=test1$y, predictor=pred_prob)
+auc1<-roc_supp1$auc
+mse1<-MSE(as.numeric(est_class),as.numeric(test1$y))
+ind1_norm<-ind1$index/2
+names(pred_prob2)<-c(1,2,3)
+ind2<-new.index(pred_prob2,test2,m=3)
+roc_supp2<-multiclass.roc(response=test2$y, predictor=pred_prob2)
+auc2<-roc_supp2$auc
+mse2<-MSE(as.numeric(est_class),as.numeric(test1$y))
+ind2_norm<-ind2$index/2
+tab<-data.frame(cbind(c(ind1$index,ind2$index),c(ind1$norm.index,ind2$norm.index),c(auc1,auc2),c(accuracy1,accuracy2),c(mse1,mse2)))
+names(tab)<-c("newind","ind_norm","auc","accuracy","mse")
+print(tab)
+tab
+```
