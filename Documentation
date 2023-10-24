@@ -12,3 +12,8 @@ m            Number of ordinal classes
 
 Value
 new.index produces a quantitative number, the normalized version of the index and a plot of the actual prediction vs the perfect prediction (i.e. the observed values).
+
+
+References
+Ballante, E., Figini, S. & Uberti, P. A new approach in model selection for ordinal target variables. Comput Stat 37, 43–56 (2022). 
+https://doi.org/10.1007/s00180-021-01112-4
