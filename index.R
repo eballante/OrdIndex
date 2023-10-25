@@ -20,10 +20,11 @@ newindex<-function(pred_prob,y,m) {
   y1=fun(x_graph)
 
   lenclass_ind_0<-c(0,which(diff(sort(pred_class))!=0))+1
-  lenclass_ind_0[m+1]<-n+1
+  n_int<-length(lenclass_ind_0)
+  lenclass_ind_0[n_int+1]<-n+1
   lenclass<-(lenclass_ind_0-1)/n
   lenclass[1]=0
-  lenclass[m+1]<-1
+  lenclass[n_int+1]<-1
   f.goal<-stepfun(x_graph,c(1,ord_obs$pred_class,m))
   y.goal=f.goal(x_graph)
   fun_mod<-data.frame(x_graph,y1)
@@ -35,9 +36,9 @@ newindex<-function(pred_prob,y,m) {
 
 
   fun_int<-function (x) abs(fun(x)-f.goal(x))
-  int<-rep(NA,m)
-  w<-rep(NA,m)
-  for (i in 1:m) {
+  int<-rep(NA,n_int)
+  w<-rep(NA,n_int)
+  for (i in 1:n_int) {
     int[i]<-integral(fun_int,lenclass[i],lenclass[i+1])
     last_class<-lenclass_ind_0[i+1]-lenclass_ind_0[i]
       error_indeces<-which(y_real[lenclass_ind_0[i]:(lenclass_ind_0[i+1]-1)]!=ord_obs$pred_class[lenclass_ind_0[i]:(lenclass_ind_0[i+1]-1)])
@@ -49,8 +50,8 @@ newindex<-function(pred_prob,y,m) {
 
     w[i]<-(err/n)/(lenclass[i+1]-lenclass[i])
   }
-  k<-rep(NA,m)
-  for (i in 1:m){
+  k<-rep(NA,n_int)
+  for (i in 1:n_int){
    k[i]<-(lenclass[i+1]-lenclass[i])*max(m-i,i-1)
   }
   index<-sum(int*w)
