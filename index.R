@@ -40,8 +40,13 @@ newindex<-function(pred_prob,y,m) {
   for (i in 1:m) {
     int[i]<-integral(fun_int,lenclass[i],lenclass[i+1])
     last_class<-lenclass_ind_0[i+1]-lenclass_ind_0[i]
-    err<-(last_class-min(which(y_real[lenclass_ind_0[i]:(lenclass_ind_0[i+1]-1)]!=ord_obs$pred_class[lenclass_ind_0[i]:(lenclass_ind_0[i+1]-1)]))+1)
-    err<-ifelse(is.finite(err),err,lenclass_ind_0[i+1]-lenclass_ind_0[i])
+      error_indeces<-which(y_real[lenclass_ind_0[i]:(lenclass_ind_0[i+1]-1)]!=ord_obs$pred_class[lenclass_ind_0[i]:(lenclass_ind_0[i+1]-1)])
+  if(length(error_indeces)>0){
+    err<-(last_class-min(error_indeces)+1)
+  } else {
+    err<-lenclass_ind_0[i+1]-lenclass_ind_0[i]
+  }
+
     w[i]<-(err/n)/(lenclass[i+1]-lenclass[i])
   }
   k<-rep(NA,m)
