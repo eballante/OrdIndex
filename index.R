@@ -1,4 +1,9 @@
 newindex<-function(pred_prob,y,m) {
+
+  require(dplyr)
+  require(ggplot2)
+  require(pracma)
+  
   n<-dim(pred_prob)[1]
   pred_prob<-unname(pred_prob) 
   ID<-1:n
