@@ -28,7 +28,7 @@ newindex<-function(pred_prob,y,m) {
   f.goal<-stepfun(x_graph,c(1,ord_obs$pred_class,m))
   y.goal=f.goal(x_graph)
   fun_mod<-data.frame(x_graph,y1)
-  h<-c(1,1:m)
+  h<-as.numeric(c(1,levels(pred_class_fac)))
   class_point<-data.frame(lenclass,h)
   graph<-ggplot(fun_mod,aes(x=x_graph,y=y1))+ geom_step()+geom_point(class_point,mapping=aes(x=lenclass,y=h))+xlab("observations")+ylab("real class")
   fun_goal<-data.frame(x_graph,y.goal)
